@@ -106,6 +106,7 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
 //   }
 // }
 
+
   // Future<void> _fetchPaniers(String mois) async {
   //   final String apiUrl = "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
   //   print("Mois choisi : $mois");
@@ -123,19 +124,19 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
   //       }
 
   //       final Random random = Random();
-
+        
   //       // Générer un nombre aléatoire de paniers sur le nombre disponible
   //       int randomPetit = random.nextInt(data["nombrePetitPanier"].toInt() + 1);
   //       int randomMoyen = random.nextInt(data["nombreMoyenPanier"].toInt() + 1);
   //       int randomGrand = random.nextInt(data["nombreGrandPanier"].toInt() + 1);
-
+        
   //       setState(() {
   //         paniers = [
   //           {"nom": "Petit Panier", "quantite": randomPetit},
   //           {"nom": "Moyen Panier", "quantite": randomMoyen},
   //           {"nom": "Grand Panier", "quantite": randomGrand}
   //         ];
-
+          
   //         isLoading = false;
   //       });
 
@@ -155,101 +156,87 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
   //   }
   // }
 
-  Future<void> _fetchPaniers(String mois) async {
-    final String apiUrl =
-        "http://127.0.0.1:5000/basket?mois=$mois"; // URL correcte
-    print("Mois choisi : $mois");
-    try {
-      final response = await http.get(Uri.parse(apiUrl));
+Future<void> _fetchPaniers(String mois) async {
+  final String apiUrl = "http://127.0.0.1:5000/basket?mois=$mois"; // URL correcte
+  print("Mois choisi : $mois");
+  try {
+    final response = await http.get(Uri.parse(apiUrl));
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data.isEmpty || data.containsKey("error")) {
-          print(
-              "⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
-          return;
-        }
-
-        final Random random = Random();
-
-        int nombrePetitPanier = data["nombrePetitPanier"].toInt();
-        int nombreMoyenPanier = data["nombreMoyenPanier"].toInt();
-        int nombreGrandPanier = data["nombreGrandPanier"].toInt();
-
-        int nombreDepots = widget.tournee['depots'].length;
-
-        int basePetitPanier = nombrePetitPanier ~/ nombreDepots;
-        int baseMoyenPanier = nombreMoyenPanier ~/ nombreDepots;
-        int baseGrandPanier = nombreGrandPanier ~/ nombreDepots;
-
-        int restePetitPanier = nombrePetitPanier % nombreDepots;
-        int resteMoyenPanier = nombreMoyenPanier % nombreDepots;
-        int resteGrandPanier = nombreGrandPanier % nombreDepots;
-
-        List<Map<String, dynamic>> paniersDistribues = [];
-        for (int i = 0; i < nombreDepots; i++) {
-          int randomPetit = basePetitPanier +
-              (i < restePetitPanier ? 1 : 0) -
-              random.nextInt(basePetitPanier); // Ajoute un random entre 0 et 1
-          int randomMoyen = baseMoyenPanier +
-              (i < resteMoyenPanier ? 1 : 0) -
-              random.nextInt(baseMoyenPanier); // Idem
-          int randomGrand = baseGrandPanier +
-              (i < resteGrandPanier ? 1 : 0) -
-              random.nextInt(baseGrandPanier); // Idem
-
-          randomPetit =
-              randomPetit > nombrePetitPanier ? nombrePetitPanier : randomPetit;
-          randomMoyen =
-              randomMoyen > nombreMoyenPanier ? nombreMoyenPanier : randomMoyen;
-          randomGrand =
-              randomGrand > nombreGrandPanier ? nombreGrandPanier : randomGrand;
-          // print("PASS 1");
-          // widget.tournee['depots'][i]['paniers']["Petit Panier"] = randomPetit;
-          // print("PASS 2");
-          // widget.tournee['depots'][i]['paniers']["Moyen Panier"] = randomPetit;
-          // widget.tournee['depots'][i]['paniers']["Grand Panier"] = randomPetit;
-
-          paniersDistribues.add({
-            "depot": widget.tournee['depots'][i]['nom'],
-            "adresse": widget.tournee['depots'][i]['adresse'],
-            "panier": [
-              {"nom": "Petit Panier", "quantite": randomPetit},
-              {"nom": "Moyen Panier", "quantite": randomMoyen},
-              {"nom": "Grand Panier", "quantite": randomGrand}
-            ]
-          });
-          print("PASS 3");
-
-          nombrePetitPanier -= randomPetit;
-          nombreMoyenPanier -= randomMoyen;
-          nombreGrandPanier -= randomGrand;
-
-          print(
-              "📦 Dépôt: ${widget.tournee['depots'][i]['nom']} - Paniers: ${paniersDistribues[i]['panier']}");
-        }
-
-        setState(() {
-          paniers = paniersDistribues;
-          print("PASS 4");
-          isLoading = false;
-        });
-      } else {
-        print(
-            "❌ Erreur lors de la récupération des paniers : ${response.body}");
-        setState(() {
-          hasError = true;
-          isLoading = false;
-        });
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      if (data.isEmpty || data.containsKey("error")) {
+        print("⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
+        return;
       }
-    } catch (e) {
-      print("⚠️ Erreur requête API paniers : $e");
+
+      final Random random = Random();
+      
+      int nombrePetitPanier = data["nombrePetitPanier"].toInt();
+      int nombreMoyenPanier = data["nombreMoyenPanier"].toInt();
+      int nombreGrandPanier = data["nombreGrandPanier"].toInt();
+
+      int nombreDepots = widget.tournee['depots'].length;
+
+      int basePetitPanier = nombrePetitPanier ~/ nombreDepots;
+      int baseMoyenPanier = nombreMoyenPanier ~/ nombreDepots;
+      int baseGrandPanier = nombreGrandPanier ~/ nombreDepots;
+
+      int restePetitPanier = nombrePetitPanier % nombreDepots;
+      int resteMoyenPanier = nombreMoyenPanier % nombreDepots;
+      int resteGrandPanier = nombreGrandPanier % nombreDepots;
+
+      List<Map<String, dynamic>> paniersDistribues = [];
+      for (int i = 0; i < nombreDepots; i++) {
+        int randomPetit = basePetitPanier + (i < restePetitPanier ? 1 : 0) - random.nextInt(basePetitPanier);  // Ajoute un random entre 0 et 1
+        int randomMoyen = baseMoyenPanier + (i < resteMoyenPanier ? 1 : 0) - random.nextInt(baseMoyenPanier);  // Idem
+        int randomGrand = baseGrandPanier + (i < resteGrandPanier ? 1 : 0) - random.nextInt(baseGrandPanier);  // Idem
+
+        randomPetit = randomPetit > nombrePetitPanier ? nombrePetitPanier : randomPetit;
+        randomMoyen = randomMoyen > nombreMoyenPanier ? nombreMoyenPanier : randomMoyen;
+        randomGrand = randomGrand > nombreGrandPanier ? nombreGrandPanier : randomGrand;
+        // print("PASS 1");
+        // widget.tournee['depots'][i]['paniers']["Petit Panier"] = randomPetit;
+        // print("PASS 2");
+        // widget.tournee['depots'][i]['paniers']["Moyen Panier"] = randomPetit;
+        // widget.tournee['depots'][i]['paniers']["Grand Panier"] = randomPetit;
+
+        paniersDistribues.add({
+          "depot": widget.tournee['depots'][i]['nom'],
+          "adresse": widget.tournee['depots'][i]['adresse'],
+          "panier":[
+            {"nom": "Petit Panier", "quantite": randomPetit},
+            {"nom": "Moyen Panier", "quantite": randomMoyen},
+            {"nom": "Grand Panier", "quantite": randomGrand}
+          ]
+        });
+        print("PASS 3");
+
+        nombrePetitPanier -= randomPetit;
+        nombreMoyenPanier -= randomMoyen;
+        nombreGrandPanier -= randomGrand;
+      }
+
+      setState(() {
+        paniers = paniersDistribues;
+        print("PASS 4");
+        isLoading = false;
+      });
+    } else {
+      print("❌ Erreur lors de la récupération des paniers : ${response.body}");
       setState(() {
         hasError = true;
         isLoading = false;
       });
     }
+  } catch (e) {
+    print("⚠️ Erreur requête API paniers : $e");
+    setState(() {
+      hasError = true;
+      isLoading = false;
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -304,12 +291,10 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
                     children: depot['panier'].map<Widget>((panier) {
                       return ListTile(
                         leading: Icon(Icons.shopping_cart),
-                        title: Text(
-                            panier['nom']), // Nom du panier (ex: Petit Panier)
+                        title: Text(panier['nom']), // Nom du panier (ex: Petit Panier)
                         trailing: Text(
                           "${panier['quantite']}x", // Quantité de paniers
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       );
                     }).toList(),
@@ -344,14 +329,12 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
           // 🔹 Bouton pour démarrer la tournée 🔹
           ElevatedButton(
             onPressed: () {
-              if (widget.tournee['depots'].isNotEmpty) {
-                print(
-                    "🔍 Dépôts envoyés à la carte : ${widget.tournee['depots']}");
+              if (depots.isNotEmpty) {
+                print("🔍 Dépôts envoyés à la carte : $depots");
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        MapPage(depots: widget.tournee['depots']),
+                    builder: (context) => MapPage(depots: depots),
                   ),
                 );
               } else {
