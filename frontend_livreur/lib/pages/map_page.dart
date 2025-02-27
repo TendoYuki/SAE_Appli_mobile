@@ -101,6 +101,7 @@ class _MapPageState extends State<MapPage> {
 
   void _notifyDelivery(
     String deliveryTitle, String status, List<dynamic> paniers) async {
+    // final url = Uri.parse("http://127.0.0.1:5000/notify_delivery");
     final url = Uri.parse("http://192.168.1.24:5000/notify_delivery");
     final body = jsonEncode({
       "delivery": deliveryTitle,
@@ -124,14 +125,38 @@ class _MapPageState extends State<MapPage> {
       print("Erreur lors de l'envoi de la notification: $e");
     }
   }
+//  Sans QR code
+  // void _validateDelivery() {
+  //   if (nextDepotIndex != null && widget.depots.isNotEmpty) {
+  //     var deliveredDepot = nextDepotDetails;
+      
+  //     setState(() {
+  //       currentPosition = nextDepot!;
+  //       widget.depots.removeAt(nextDepotIndex!);
+  //       nextDepotDetails = null;
+  //     });
 
+  //     if (deliveredDepot != null) {
+  //       List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
+  //       _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
+  //     }
+
+  //     if (widget.depots.isNotEmpty) {
+  //       _findClosestDepot();
+  //     } else {
+  //       _returnToStart();
+  //     }
+  //   }
+  // }
+
+// Avec QR Code
   void _validateDelivery() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => QRScannerPage(onScanSuccess: _onScanSuccess)),
     );
   }
-
+// Avec QR Code
   void _onScanSuccess(String qrCode) {
     var deliveredDepot = null;
     setState(() {

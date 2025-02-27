@@ -71,93 +71,9 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
     }
   }
 
-//   Future<void> _createDefaultPanierComposition(int tourneeId) async {
-//   final String apiUrl =
-//       "https://qjnieztpwnwroinqrolm.supabase.co/rest/v1/detail_livraisons";
-
-//   // 📦 Composition par défaut
-//   List<Map<String, dynamic>> defaultPaniers = [
-//     {"tournee_id": tourneeId, "produit_id": 1, "produit": "Panier Simple", "qte": 5},
-//     {"tournee_id": tourneeId, "produit_id": 2, "produit": "Panier Familial", "qte": 3},
-//     {"tournee_id": tourneeId, "produit_id": 3, "produit": "Panier Fruits", "qte": 2},
-//     {"tournee_id": tourneeId, "produit_id": 4, "produit": "Œufs Bio", "qte": 6}
-//   ];
-
-//   try {
-//     final response = await http.post(
-//       Uri.parse(apiUrl),
-//       headers: {
-//         "apikey":
-//             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqbmllenRwd253cm9pbnFyb2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc4MTEwNTAsImV4cCI6MjA1MzM4NzA1MH0.orLZFmX3i_qR0H4H6WwhUilNf5a1EAfrFhbbeRvN41M",
-//         "Content-Type": "application/json",
-//         "Prefer": "return=minimal"
-//       },
-//       body: jsonEncode(defaultPaniers),
-//     );
-
-//     if (response.statusCode == 201) {
-//       print("✅ Composition de paniers créée pour la tournée $tourneeId");
-//       await _fetchPaniers(); // Recharge les paniers
-//     } else {
-//       print("❌ Erreur lors de la création de la composition : ${response.body}");
-//     }
-//   } catch (e) {
-//     print("⚠️ Erreur envoi requête création panier : $e");
-//   }
-// }
-
-  // Future<void> _fetchPaniers(String mois) async {
-  //   final String apiUrl = "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
-  //   print("Mois choisi : $mois");
-  //   try {
-  //     final response = await http.get(Uri.parse(apiUrl));
-
-  //     // print("📡 Réponse brute API : ${response.body}");
-
-  //     if (response.statusCode == 200) {
-  //       final Map<String, dynamic> data = jsonDecode(response.body);
-  //       // print("Réponse brute data : $data");
-  //       if (data.isEmpty || data.containsKey("error")) {
-  //         print("⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
-  //         return;
-  //       }
-
-  //       final Random random = Random();
-
-  //       // Générer un nombre aléatoire de paniers sur le nombre disponible
-  //       int randomPetit = random.nextInt(data["nombrePetitPanier"].toInt() + 1);
-  //       int randomMoyen = random.nextInt(data["nombreMoyenPanier"].toInt() + 1);
-  //       int randomGrand = random.nextInt(data["nombreGrandPanier"].toInt() + 1);
-
-  //       setState(() {
-  //         paniers = [
-  //           {"nom": "Petit Panier", "quantite": randomPetit},
-  //           {"nom": "Moyen Panier", "quantite": randomMoyen},
-  //           {"nom": "Grand Panier", "quantite": randomGrand}
-  //         ];
-
-  //         isLoading = false;
-  //       });
-
-  //     } else {
-  //       print("❌ Erreur lors de la récupération des paniers : ${response.body}");
-  //       setState(() {
-  //         hasError = true;
-  //         isLoading = false;
-  //       });
-  //     }
-  //   } catch (e) {
-  //     print("⚠️ Erreur requête API paniers : $e");
-  //     setState(() {
-  //       hasError = true;
-  //       isLoading = false;
-  //     });
-  //   }
-  // }
-
   Future<void> _fetchPaniers(String mois) async {
-    final String apiUrl =
-        "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
+    // final String apiUrl = "http://127.0.0.1:5000/basket?mois=$mois";
+    final String apiUrl = "http://192.168.1.24:5000/basket?mois=$mois";
     print("Mois choisi : $mois");
     try {
       final response = await http.get(Uri.parse(apiUrl));
