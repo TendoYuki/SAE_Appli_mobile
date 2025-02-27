@@ -152,56 +152,54 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
 //   }
 // }
 
-Future<void> _fetchPaniers(String mois) async {
-  final String apiUrl = "http://127.0.0.1:5000/basket?mois=$mois"; // URL correcte
-  print("Mois choisi : $mois");
-  try {
-    final response = await http.get(Uri.parse(apiUrl));
+  Future<void> _fetchPaniers(String mois) async {
+    final String apiUrl = "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
+    print("Mois choisi : $mois");
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
 
-    print("📡 Réponse brute API : ${response.body}");
+      // print("📡 Réponse brute API : ${response.body}");
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      print("Réponse brute data : $data");
-      if (data.isEmpty || data.containsKey("error")) {
-        print("⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
-        return;
-      }
-      print("PASS 1");
-      final Random random = Random();
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        // print("Réponse brute data : $data");
+        if (data.isEmpty || data.containsKey("error")) {
+          print("⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
+          return;
+        }
 
-      // Générer un nombre aléatoire de paniers sur le nombre disponible
-      int randomPetit = random.nextInt(data["nombrePetitPanier"] + 1);
-      int randomMoyen = random.nextInt(data["nombreMoyenPanier"] + 1);
-      int randomGrand = random.nextInt(data["nombreGrandPanier"] + 1);
-
-      print("PASS 2");
-      setState(() {
-        paniers = [
-          {"nom": "Petit Panier", "quantite": randomPetit},
-          {"nom": "Moyen Panier", "quantite": randomMoyen},
-          {"nom": "Grand Panier", "quantite": randomGrand}
-        ];
+        final Random random = Random();
         
-        print("PASS 3");
-        isLoading = false;
-      });
+        // Générer un nombre aléatoire de paniers sur le nombre disponible
+        int randomPetit = random.nextInt(data["nombrePetitPanier"].toInt() + 1);
+        int randomMoyen = random.nextInt(data["nombreMoyenPanier"].toInt() + 1);
+        int randomGrand = random.nextInt(data["nombreGrandPanier"].toInt() + 1);
+        
+        setState(() {
+          paniers = [
+            {"nom": "Petit Panier", "quantite": randomPetit},
+            {"nom": "Moyen Panier", "quantite": randomMoyen},
+            {"nom": "Grand Panier", "quantite": randomGrand}
+          ];
+          
+          isLoading = false;
+        });
 
-    } else {
-      print("❌ Erreur lors de la récupération des paniers : ${response.body}");
+      } else {
+        print("❌ Erreur lors de la récupération des paniers : ${response.body}");
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("⚠️ Erreur requête API paniers : $e");
       setState(() {
         hasError = true;
         isLoading = false;
       });
     }
-  } catch (e) {
-    print("⚠️ Erreur requête API paniers : $e");
-    setState(() {
-      hasError = true;
-      isLoading = false;
-    });
   }
-}
 
 
   @override
