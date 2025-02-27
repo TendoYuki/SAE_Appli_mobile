@@ -14,12 +14,13 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  LatLng startPoint = LatLng(48.2528634, 6.4268873); // Point de départ initial
+  LatLng startPoint = LatLng(48.2528634, 6.4268873);
   LatLng? nextDepot;
   int? nextDepotIndex;
   List<LatLng> routePoints = [];
-  bool returningToStart = false; // Indicateur pour le retour au point de départ
-  bool isReturningDisplayed = false; // Empêche la suppression de l'itinéraire final
+  bool returningToStart = false;
+  bool isReturningDisplayed = false;
+  Map<String, dynamic>? nextDepotDetails; // Stocke les infos du prochain dépôt
 
   @override
   void initState() {
@@ -30,17 +31,20 @@ class _MapPageState extends State<MapPage> {
   void _setInitialPosition() {
     if (widget.depots.isNotEmpty) {
       setState(() {
-        nextDepotIndex = 0; // Premier dépôt dans la liste
+        nextDepotIndex = 0;
         nextDepot = LatLng(
           widget.depots[0]['coordonnees']['coordinates'][1],
           widget.depots[0]['coordonnees']['coordinates'][0],
         );
+        nextDepotDetails = widget.depots[0];
       });
-      _fetchRoute(startPoint, nextDepot!); // Itinéraire entre le point de départ et le premier dépôt
+      _fetchRoute(startPoint, nextDepot!);
     }
   }
 
   void _findClosestDepot() {
+    if (widget.depots.isEmpty) return;
+
     double minDistance = double.infinity;
     LatLng? closestDepot;
     int? closestIndex;
@@ -50,7 +54,8 @@ class _MapPageState extends State<MapPage> {
       double lon = widget.depots[i]['coordonnees']['coordinates'][0];
       LatLng depotPos = LatLng(lat, lon);
 
-      double distance = Distance().as(LengthUnit.Kilometer, startPoint, depotPos);
+      double distance =
+          Distance().as(LengthUnit.Kilometer, startPoint, depotPos);
 
       if (distance < minDistance) {
         minDistance = distance;
@@ -62,7 +67,8 @@ class _MapPageState extends State<MapPage> {
     if (closestDepot != null && closestIndex != null) {
       setState(() {
         nextDepot = closestDepot;
-        nextDepotIndex = closestIndex;
+        nextDepotIndex = closestIndex!; // Forcer non-nullabilité
+        nextDepotDetails = widget.depots[closestIndex!];
       });
       _fetchRoute(startPoint, closestDepot);
     }
@@ -94,10 +100,11 @@ class _MapPageState extends State<MapPage> {
       setState(() {
         widget.depots.removeAt(nextDepotIndex!);
         startPoint = nextDepot!;
+        nextDepotDetails = null; // Masquer les détails du dépôt livré
       });
 
       if (widget.depots.isNotEmpty) {
-        _findClosestDepot();
+        _findClosestDepot(); // Trouver le dépôt suivant
       } else {
         _returnToStart();
       }
@@ -117,39 +124,104 @@ class _MapPageState extends State<MapPage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Tournée terminée, retour au dépôt effectué !"),
+          content: Text("🎉 Tournée terminée, retour au dépôt effectué !"),
         ));
       });
     });
+  }
+
+  void _showNextDepotDetails() {
+    if (nextDepotDetails == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16.0),
+          height: 250,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "📍 Prochain dépôt : ${nextDepotDetails!['nom']}",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                  "🏠 Adresse : ${nextDepotDetails!['adresse'] ?? 'Non disponible'}"),
+              SizedBox(height: 8),
+              Text(
+                  "📌 Coordonnées : ${nextDepotDetails!['coordonnees']['coordinates'][1]}, ${nextDepotDetails!['coordonnees']['coordinates'][0]}"),
+              SizedBox(height: 8),
+              Text("📦 Paniers à livrer :",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: (nextDepotDetails!['paniers'] ?? []).length,
+                  itemBuilder: (context, index) {
+                    var panier = nextDepotDetails!['paniers'][index];
+                    return ListTile(
+                      leading: Icon(Icons.shopping_cart),
+                      title: Text(panier['produit']),
+                      trailing: Text("${panier['qte']}x"),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Fermer"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Carte de la tournée")),
-      body: FlutterMap(
-        options: MapOptions(
-          center: startPoint,
-          zoom: 13.0,
-        ),
+      body: Stack(
         children: [
-          TileLayer(
-            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            subdomains: ['a', 'b', 'c'],
-          ),
-          if (routePoints.isNotEmpty || isReturningDisplayed)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: routePoints,
-                  color: returningToStart ? Colors.green : Colors.blue,
-                  strokeWidth: 4.0,
-                ),
-              ],
+          FlutterMap(
+            options: MapOptions(
+              center: startPoint,
+              zoom: 13.0,
             ),
-          MarkerLayer(
-            markers: _buildMarkers(),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                subdomains: ['a', 'b', 'c'],
+              ),
+              if (routePoints.isNotEmpty || isReturningDisplayed)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      color: returningToStart ? Colors.green : Colors.blue,
+                      strokeWidth: 4.0,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: _buildMarkers(),
+              ),
+            ],
           ),
+          if (nextDepotDetails != null)
+            Positioned(
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: ElevatedButton(
+                onPressed: _showNextDepotDetails,
+                child: Text("📍 Voir le prochain dépôt"),
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -161,30 +233,15 @@ class _MapPageState extends State<MapPage> {
   }
 
   List<Marker> _buildMarkers() {
-    List<Marker> markers = [];
-
-    markers.add(
-      Marker(
-        width: 50.0,
-        height: 50.0,
-        point: LatLng(48.2528634, 6.4268873), // Point de départ
-        builder: (ctx) => Icon(Icons.home, color: Colors.green, size: 50),
-      ),
-    );
-
-    for (var depot in widget.depots) {
+    return widget.depots.map((depot) {
       double lat = depot['coordonnees']['coordinates'][1];
       double lon = depot['coordonnees']['coordinates'][0];
-      markers.add(
-        Marker(
-          width: 40.0,
-          height: 40.0,
-          point: LatLng(lat, lon),
-          builder: (ctx) => Icon(Icons.location_on, color: Colors.red, size: 40),
-        ),
+      return Marker(
+        width: 40.0,
+        height: 40.0,
+        point: LatLng(lat, lon),
+        builder: (ctx) => Icon(Icons.location_on, color: Colors.red, size: 40),
       );
-    }
-
-    return markers;
+    }).toList();
   }
 }
