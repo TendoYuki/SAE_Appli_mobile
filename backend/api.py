@@ -7,12 +7,12 @@ app = Flask(__name__)
 CSV_FILE = "data/Legumes_par_mois.csv"
 
 class BasketInfos:
-    def __init__(self, prix_petit, prix_moyen, prix_grand, mois_souhaite):
+    def __init__(self, mois_souhaite):
         self.csv_file = CSV_FILE
         self.mois_souhaite = mois_souhaite
-        self.prix_petit_panier = prix_petit
-        self.prix_moyen_panier = prix_moyen
-        self.prix_grand_panier = prix_grand
+        self.prix_petit_panier = 10
+        self.prix_moyen_panier = 15
+        self.prix_grand_panier = 20
         self.data_pour_mois = []
         self.petit_panier = []
         self.moyen_panier = []
@@ -110,14 +110,19 @@ def home():
 def get_basket_via_get():
     try:
         mois = request.args.get('mois')
-        prix_petit = request.args.get('prixPetit', type=float)
-        prix_moyen = request.args.get('prixMoyen', type=float)
-        prix_grand = request.args.get('prixGrand', type=float)
+        # prix_petit = request.args.get('prixPetit', type=float)
+        # prix_moyen = request.args.get('prixMoyen', type=float)
+        # prix_grand = request.args.get('prixGrand', type=float)
 
-        if not mois or prix_petit is None or prix_moyen is None or prix_grand is None:
-            return json.dumps({"error": "Paramètres requis manquants. basket?mois=...&prixPetit=...&prixMoyen=...&prixGrand=..."}, ensure_ascii=False), 400
+        # if not mois or prix_petit is None or prix_moyen is None or prix_grand is None:
+        #     return json.dumps({"error": "Paramètres requis manquants. basket?mois=...&prixPetit=...&prixMoyen=...&prixGrand=..."}, ensure_ascii=False), 400
 
-        basket = BasketInfos(prix_petit, prix_moyen, prix_grand, mois)
+        if not mois :
+            return json.dumps({"error": "Paramètres requis manquants. basket?mois=..."}, ensure_ascii=False), 400
+
+
+        # basket = BasketInfos(prix_petit, prix_moyen, prix_grand, mois)
+        basket = BasketInfos(mois)
         basket.init()
 
         if not basket.data_pour_mois:  # Si aucun légume n'a été chargé
