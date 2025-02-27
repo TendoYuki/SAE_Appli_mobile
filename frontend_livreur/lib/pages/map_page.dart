@@ -138,54 +138,56 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _showNextDepotDetails() {
-    if (nextDepotDetails == null) return;
+  if (nextDepotDetails == null) return;
 
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(16.0),
-          height: 250,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "📍 Prochain dépôt : ${nextDepotDetails!['nom']}",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Container(
+        padding: EdgeInsets.all(16.0),
+        height: 500,  // Augmenter la hauteur pour inclure les paniers
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "📍 Prochain dépôt : ${nextDepotDetails!['nom']}",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text("🏠 Adresse : ${nextDepotDetails!['adresse'] ?? 'Non disponible'}"),
+            SizedBox(height: 8),
+            Text(
+              "📌 Coordonnées : ${nextDepotDetails!['coordonnees']['coordinates'][1]}, ${nextDepotDetails!['coordonnees']['coordinates'][0]}"),
+            SizedBox(height: 8),
+            Text("📦 Paniers à livrer :", style: TextStyle(fontWeight: FontWeight.bold)),
+
+            // Affichage des paniers à livrer pour ce dépôt
+            Expanded(
+              child: ListView.builder(
+                itemCount: (nextDepotDetails!['paniers'] ?? []).length,
+                itemBuilder: (context, index) {
+                  var panier = nextDepotDetails!['paniers'][index];
+                  return ListTile(
+                    leading: Icon(Icons.shopping_cart),
+                    title: Text(panier['nom']),
+                    trailing: Text("${panier['quantite']}x"),
+                  );
+                },
               ),
-              SizedBox(height: 8),
-              Text(
-                  "🏠 Adresse : ${nextDepotDetails!['adresse'] ?? 'Non disponible'}"),
-              SizedBox(height: 8),
-              Text(
-                  "📌 Coordonnées : ${nextDepotDetails!['coordonnees']['coordinates'][1]}, ${nextDepotDetails!['coordonnees']['coordinates'][0]}"),
-              SizedBox(height: 8),
-              Text("📦 Paniers à livrer :",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: (nextDepotDetails!['paniers'] ?? []).length,
-                  itemBuilder: (context, index) {
-                    var panier = nextDepotDetails!['paniers'][index];
-                    return ListTile(
-                      leading: Icon(Icons.shopping_cart),
-                      title: Text(panier['produit']),
-                      trailing: Text("${panier['qte']}x"),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Fermer"),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+            ),
+            
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Fermer"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
