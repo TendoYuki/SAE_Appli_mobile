@@ -169,8 +169,8 @@ class _MapPageState extends State<MapPage> {
                     var panier = nextDepotDetails!['paniers'][index];
                     return ListTile(
                       leading: Icon(Icons.shopping_cart),
-                      title: Text(panier['produit']),
-                      trailing: Text("${panier['qte']}x"),
+                      title: Text(panier['nom']),
+                      trailing: Text("${panier['quantite']}x"),
                     );
                   },
                 ),
