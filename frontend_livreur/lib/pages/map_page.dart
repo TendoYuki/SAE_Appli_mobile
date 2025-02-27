@@ -101,8 +101,8 @@ class _MapPageState extends State<MapPage> {
 
   void _notifyDelivery(
     String deliveryTitle, String status, List<dynamic> paniers) async {
-    // final url = Uri.parse("http://127.0.0.1:5000/notify_delivery");
-    final url = Uri.parse("http://192.168.1.24:5000/notify_delivery");
+    final url = Uri.parse("http://127.0.0.1:5000/notify_delivery");
+    //final url = Uri.parse("http://192.168.1.24:5000/notify_delivery");
     final body = jsonEncode({
       "delivery": deliveryTitle,
       "status": status,
@@ -126,30 +126,30 @@ class _MapPageState extends State<MapPage> {
     }
   }
 //  Sans QR code
-  // void _validateDelivery() {
-  //   if (nextDepotIndex != null && widget.depots.isNotEmpty) {
-  //     var deliveredDepot = nextDepotDetails;
+   void _validateDelivery() {
+     if (nextDepotIndex != null && widget.depots.isNotEmpty) {
+       var deliveredDepot = nextDepotDetails;
       
-  //     setState(() {
-  //       currentPosition = nextDepot!;
-  //       widget.depots.removeAt(nextDepotIndex!);
-  //       nextDepotDetails = null;
-  //     });
+       setState(() {
+         currentPosition = nextDepot!;
+         widget.depots.removeAt(nextDepotIndex!);
+         nextDepotDetails = null;
+       });
 
-  //     if (deliveredDepot != null) {
-  //       List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
-  //       _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
-  //     }
+       if (deliveredDepot != null) {
+         List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
+         _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
+       }
 
-  //     if (widget.depots.isNotEmpty) {
-  //       _findClosestDepot();
-  //     } else {
-  //       _returnToStart();
-  //     }
-  //   }
-  // }
+       if (widget.depots.isNotEmpty) {
+        _findClosestDepot();
+      } else {
+         _returnToStart();
+       }
+     }
+   }
 
-// Avec QR Code
+/*
   void _validateDelivery() {
     Navigator.push(
       context,
@@ -183,6 +183,7 @@ class _MapPageState extends State<MapPage> {
       content: Text("✅ Livraison validée avec succès !"),
     ));
   }
+  */
 
 
   void _returnToStart() {
