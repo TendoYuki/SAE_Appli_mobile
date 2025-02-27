@@ -16,7 +16,7 @@ class _TourneePageState extends State<TourneePage> {
   List<Map<String, dynamic>> tournees = [];
   List depots = [];
   List<bool> selectedDepots = [];
-  final Color primaryColor = Color(0xFF2196F3); 
+  final Color primaryColor = Color(0xFF2196F3);
   final Color accentColor = Color(0xFFFF9800);
 
   final String jardinDeCocagne = "Jardins de Cocagne";
@@ -41,7 +41,18 @@ class _TourneePageState extends State<TourneePage> {
     if (response.statusCode == 200) {
       setState(() {
         depots = jsonDecode(response.body);
-        selectedDepots = List<bool>.filled(depots.length, false);
+        if (depots.isNotEmpty) {
+          // Vérifie que la liste `selectedDepots` est bien de la bonne taille
+          if (selectedDepots.length != depots.length) {
+            selectedDepots = List<bool>.filled(depots.length, false);
+          }
+
+          for (int i = 0; i < depots.length; i++) {
+            if (depots[i]['depot'] == jardinDeCocagne) {
+              selectedDepots[i] = true;
+            }
+          }
+        }
 
         for (int i = 0; i < depots.length; i++) {
           if (depots[i]['depot'] == jardinDeCocagne) {
@@ -64,62 +75,73 @@ class _TourneePageState extends State<TourneePage> {
   }
 
   Future<int> _generateUniqueId() async {
-  final prefs = await SharedPreferences.getInstance();
-  int id = (prefs.getInt('lastTourneeId') ?? 0) + 1;
+    final prefs = await SharedPreferences.getInstance();
+    int id = (prefs.getInt('lastTourneeId') ?? 0) + 1;
 
-  if (id > 1000) {
-    id = 1; // On boucle pour rester sous 1000
+    if (id > 1000) {
+      id = 1; // On boucle pour rester sous 1000
+    }
+
+    await prefs.setInt('lastTourneeId', id);
+    return id;
   }
-
-  await prefs.setInt('lastTourneeId', id);
-  return id;
-}
 
   Future<void> _saveTournee() async {
-  if (_nomController.text.isEmpty) {
-    setState(() {
-      _nomError = true;
-    });
-    return;
-  }
-
-  setState(() {
-    _nomError = false;
-  });
-
-  if (!selectedDepots.contains(true)) return;
-
-  List<Map<String, dynamic>> depotsSelectionnes = [];
-  for (int i = 0; i < depots.length; i++) {
-    if (selectedDepots[i]) {
-      depotsSelectionnes.add({
-        "nom": depots[i]['depot'],
-        "adresse": depots[i]['adresse'] ?? "Adresse inconnue",
-        "coordonnees": depots[i]['localisation'] ?? {"lat": 0, "lng": 0}
+    if (_nomController.text.isEmpty) {
+      setState(() {
+        _nomError = true;
       });
+      return;
     }
+
+    setState(() {
+      _nomError = false;
+    });
+
+    if (!selectedDepots.contains(true)) return;
+
+    List<Map<String, dynamic>> depotsSelectionnes = [];
+    for (int i = 0; i < depots.length; i++) {
+      if (selectedDepots[i]) {
+        depotsSelectionnes.add({
+          "nom": depots[i]['depot'],
+          "adresse": depots[i]['adresse'] ?? "Adresse inconnue",
+          "coordonnees": depots[i]['localisation'] ?? {"lat": 0, "lng": 0}
+        });
+      }
+    }
+
+    int id = await _generateUniqueId(); // Génère un ID ≤ 1000
+
+    Map<String, dynamic> nouvelleTournee = {
+      "id": id, // 📌 Utilisation de l'ID généré
+      "nom": _nomController.text,
+      "depots": depotsSelectionnes,
+      "total_depots": depotsSelectionnes.length
+    };
+
+    setState(() {
+      tournees.add(nouvelleTournee);
+      isCreatingTournee = false;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('tournees', json.encode(tournees));
+
+    _nomController.clear();
+    List<bool> newSelectedDepots = List<bool>.filled(depots.length, false);
+
+    for (int i = 0; i < depots.length; i++) {
+      if (depots[i]['depot'] == jardinDeCocagne) {
+        newSelectedDepots[i] = true; // ✅ Garde Jardin de Cocagne sélectionné
+      }
+    }
+
+// Applique la nouvelle liste avec Jardin de Cocagne toujours coché
+    setState(() {
+      selectedDepots = newSelectedDepots;
+    });
   }
-
-  int id = await _generateUniqueId(); // Génère un ID ≤ 1000
-
-  Map<String, dynamic> nouvelleTournee = {
-    "id": id, // 📌 Utilisation de l'ID généré
-    "nom": _nomController.text,
-    "depots": depotsSelectionnes,
-    "total_depots": depotsSelectionnes.length
-  };
-
-  setState(() {
-    tournees.add(nouvelleTournee);
-    isCreatingTournee = false;
-  });
-
-  final prefs = await SharedPreferences.getInstance();
-  prefs.setString('tournees', json.encode(tournees));
-
-  _nomController.clear();
-  selectedDepots = List<bool>.filled(depots.length, false);
-}
 
   Future<void> _deleteTournee(int index) async {
     setState(() {
@@ -135,7 +157,8 @@ class _TourneePageState extends State<TourneePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: Text(
             "Supprimer la tournée ?",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -169,7 +192,8 @@ class _TourneePageState extends State<TourneePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: Text(
             "Supprimer le point de départ ?",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -222,9 +246,12 @@ class _TourneePageState extends State<TourneePage> {
               },
               label: Text(isCreatingTournee ? 'Annuler' : 'Créer une Tournée'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isCreatingTournee ? Colors.red : Color(0xFF388E3C), // Vert clair
+                backgroundColor: isCreatingTournee
+                    ? Colors.red
+                    : Color(0xFF388E3C), // Vert clair
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
             ),
@@ -235,22 +262,28 @@ class _TourneePageState extends State<TourneePage> {
                   controller: _nomController,
                   decoration: InputDecoration(
                     labelText: 'Nom de la tournée',
-                    errorText: _nomError ? "Le nom de la tournée est requis" : null,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    errorText:
+                        _nomError ? "Le nom de la tournée est requis" : null,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ),
               Expanded(
                 child: depots.isEmpty
-                    ? Center(child: CircularProgressIndicator(color: Color(0xFF388E3C))) // Vert clair
+                    ? Center(
+                        child: CircularProgressIndicator(
+                            color: Color(0xFF388E3C))) // Vert clair
                     : ListView.builder(
                         itemCount: depots.length,
                         itemBuilder: (context, index) {
-                          bool isJardin = depots[index]['depot'] == "Jardins de Cocagne";
+                          bool isJardin =
+                              depots[index]['depot'] == "Jardins de Cocagne";
                           return Card(
                             margin: EdgeInsets.symmetric(vertical: 5),
                             elevation: 3,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                             child: CheckboxListTile(
                               title: Text(depots[index]['depot']),
                               value: selectedDepots[index],
@@ -276,7 +309,8 @@ class _TourneePageState extends State<TourneePage> {
                   backgroundColor: Color(0xFF388E3C), // Vert clair
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
               Divider(),
@@ -288,12 +322,15 @@ class _TourneePageState extends State<TourneePage> {
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 5),
                     elevation: 3,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                     child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       title: Text(
                         tournees[index]['nom'],
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         "Dépôts: ${tournees[index]['total_depots']}",
@@ -307,13 +344,16 @@ class _TourneePageState extends State<TourneePage> {
                             onPressed: () => _confirmDeleteTournee(index),
                           ),
                           IconButton(
-                            icon: Icon(Icons.arrow_forward, color: Color(0xFF388E3C)), // Vert clair
+                            icon: Icon(Icons.arrow_forward,
+                                color: Color(0xFF388E3C)), // Vert clair
                             onPressed: () {
-                              print("🔍 ID de la tournée envoyée : ${tournees[index]['id']}");
+                              print(
+                                  "🔍 ID de la tournée envoyée : ${tournees[index]['id']}");
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => TourneeDetailPage(tournee: tournees[index]),
+                                  builder: (context) => TourneeDetailPage(
+                                      tournee: tournees[index]),
                                 ),
                               );
                             },

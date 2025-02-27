@@ -15,6 +15,7 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   LatLng startPoint = LatLng(48.2528634, 6.4268873);
+  late LatLng currentPosition;
   LatLng? nextDepot;
   int? nextDepotIndex;
   List<LatLng> routePoints = [];
@@ -25,6 +26,7 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    currentPosition = startPoint;
     _setInitialPosition();
   }
 
@@ -38,7 +40,7 @@ class _MapPageState extends State<MapPage> {
         );
         nextDepotDetails = widget.depots[0];
       });
-      _fetchRoute(startPoint, nextDepot!);
+      _fetchRoute(currentPosition, nextDepot!);
     }
   }
 
@@ -54,8 +56,9 @@ class _MapPageState extends State<MapPage> {
       double lon = widget.depots[i]['coordonnees']['coordinates'][0];
       LatLng depotPos = LatLng(lat, lon);
 
+      // On mesure la distance depuis la position actuelle du livreur, pas le Jardin de Cocagne
       double distance =
-          Distance().as(LengthUnit.Kilometer, startPoint, depotPos);
+          Distance().as(LengthUnit.Kilometer, currentPosition, depotPos);
 
       if (distance < minDistance) {
         minDistance = distance;
@@ -67,10 +70,10 @@ class _MapPageState extends State<MapPage> {
     if (closestDepot != null && closestIndex != null) {
       setState(() {
         nextDepot = closestDepot;
-        nextDepotIndex = closestIndex!; // Forcer non-nullabilité
+        nextDepotIndex = closestIndex!; // Forcer la non-nullabilité
         nextDepotDetails = widget.depots[closestIndex!];
       });
-      _fetchRoute(startPoint, closestDepot);
+      _fetchRoute(currentPosition, closestDepot);
     }
   }
 
@@ -98,9 +101,12 @@ class _MapPageState extends State<MapPage> {
   void _validateDelivery() {
     if (nextDepotIndex != null && widget.depots.isNotEmpty) {
       setState(() {
+        // Met à jour la position actuelle avec la position du dépôt livré
+        currentPosition = nextDepot!;
+
+        // Supprime le dépôt livré
         widget.depots.removeAt(nextDepotIndex!);
-        startPoint = nextDepot!;
-        nextDepotDetails = null; // Masquer les détails du dépôt livré
+        nextDepotDetails = null;
       });
 
       if (widget.depots.isNotEmpty) {
@@ -117,7 +123,8 @@ class _MapPageState extends State<MapPage> {
       isReturningDisplayed = true;
     });
 
-    _fetchRoute(startPoint, LatLng(48.2528634, 6.4268873)).then((_) {
+    _fetchRoute(currentPosition, startPoint).then((_) {
+      // On part du dernier dépôt livré
       Future.delayed(Duration(seconds: 2), () {
         setState(() {
           returningToStart = false;
@@ -233,15 +240,36 @@ class _MapPageState extends State<MapPage> {
   }
 
   List<Marker> _buildMarkers() {
-    return widget.depots.map((depot) {
+    List<Marker> markers = widget.depots.map((depot) {
       double lat = depot['coordonnees']['coordinates'][1];
       double lon = depot['coordonnees']['coordinates'][0];
+
       return Marker(
         width: 40.0,
         height: 40.0,
         point: LatLng(lat, lon),
-        builder: (ctx) => Icon(Icons.location_on, color: Colors.red, size: 40),
+        builder: (ctx) => Icon(
+          Icons.location_on,
+          color: Colors.red,
+          size: 40,
+        ),
       );
     }).toList();
+
+    // Ajout du marqueur fixe pour le Jardin de Cocagne
+    markers.add(
+      Marker(
+        width: 50.0,
+        height: 50.0,
+        point: startPoint,
+        builder: (ctx) => Icon(
+          Icons.home,
+          color: Colors.green,
+          size: 50,
+        ),
+      ),
+    );
+
+    return markers;
   }
 }

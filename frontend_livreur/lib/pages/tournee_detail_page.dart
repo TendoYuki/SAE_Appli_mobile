@@ -42,29 +42,34 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
   }
 
   void _loadDepots() {
-  print("🔍 Dépôts reçus : ${widget.tournee['depots']}"); // Debug
-  
-  if (widget.tournee['depots'] is List) {
-    try {
-      depots = widget.tournee['depots'].map((depot) {
-        if (depot == null) {
-          return {'depot': 'Dépôt inconnu'};  // ✅ Gère les valeurs `null`
-        }
-        if (depot is String) {
-          return {'depot': depot};  // ✅ Convertit les Strings en Maps
-        }
-        return depot;
-      }).toList().cast<Map<String, dynamic>>();
+    print("🔍 Dépôts reçus : ${widget.tournee['depots']}"); // Debug
 
-      setState(() {});
-    } catch (e) {
-      print("❌ Erreur de conversion des dépôts : $e");
+    if (widget.tournee['depots'] is List) {
+      try {
+        depots = widget.tournee['depots']
+            .where((depot) =>
+                depot['nom'] !=
+                "Jardins de Cocagne") // ❌ Exclut le Jardin de Cocagne
+            .map((depot) {
+              if (depot == null) {
+                return {'depot': 'Dépôt inconnu'};
+              }
+              if (depot is String) {
+                return {'depot': depot};
+              }
+              return depot;
+            })
+            .toList()
+            .cast<Map<String, dynamic>>();
+
+        setState(() {});
+      } catch (e) {
+        print("❌ Erreur de conversion des dépôts : $e");
+      }
+    } else {
+      print("⚠️ Les données des dépôts ne sont pas une liste !");
     }
-  } else {
-    print("⚠️ Les données des dépôts ne sont pas une liste !");
   }
-}
-
 
 //   Future<void> _createDefaultPanierComposition(int tourneeId) async {
 //   final String apiUrl =
@@ -100,7 +105,6 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
 //     print("⚠️ Erreur envoi requête création panier : $e");
 //   }
 // }
-
 
 // Future<void> _fetchPaniers() async {
 //   final int? tourneeId = widget.tournee['id'];
@@ -163,7 +167,8 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
 // }
 
   Future<void> _fetchPaniers(String mois) async {
-    final String apiUrl = "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
+    final String apiUrl =
+        "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
     print("Mois choisi : $mois");
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -174,29 +179,30 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
         final Map<String, dynamic> data = jsonDecode(response.body);
         // print("Réponse brute data : $data");
         if (data.isEmpty || data.containsKey("error")) {
-          print("⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
+          print(
+              "⚠️ Aucun panier trouvé pour $mois. ➡️ Création d'une composition par défaut.");
           return;
         }
 
         final Random random = Random();
-        
+
         // Générer un nombre aléatoire de paniers sur le nombre disponible
         int randomPetit = random.nextInt(data["nombrePetitPanier"].toInt() + 1);
         int randomMoyen = random.nextInt(data["nombreMoyenPanier"].toInt() + 1);
         int randomGrand = random.nextInt(data["nombreGrandPanier"].toInt() + 1);
-        
+
         setState(() {
           paniers = [
             {"nom": "Petit Panier", "quantite": randomPetit},
             {"nom": "Moyen Panier", "quantite": randomMoyen},
             {"nom": "Grand Panier", "quantite": randomGrand}
           ];
-          
+
           isLoading = false;
         });
-
       } else {
-        print("❌ Erreur lors de la récupération des paniers : ${response.body}");
+        print(
+            "❌ Erreur lors de la récupération des paniers : ${response.body}");
         setState(() {
           hasError = true;
           isLoading = false;
@@ -210,7 +216,6 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
