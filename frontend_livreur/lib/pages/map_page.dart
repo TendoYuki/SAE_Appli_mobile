@@ -98,24 +98,58 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  void _validateDelivery() {
-    if (nextDepotIndex != null && widget.depots.isNotEmpty) {
-      setState(() {
-        // Met à jour la position actuelle avec la position du dépôt livré
-        currentPosition = nextDepot!;
+  void _notifyDelivery(
+      String deliveryTitle, String status, List<dynamic> paniers) async {
+    final url = Uri.parse("http://127.0.0.1:5000/notify_delivery");
+    final body = jsonEncode({
+      "delivery": deliveryTitle,
+      "status": status,
+      "timestamp": DateTime.now().toIso8601String(),
+      "paniers": paniers // Détail des paniers (petit, moyen, grand)
+    });
 
-        // Supprime le dépôt livré
-        widget.depots.removeAt(nextDepotIndex!);
-        nextDepotDetails = null;
-      });
-
-      if (widget.depots.isNotEmpty) {
-        _findClosestDepot(); // Trouver le dépôt suivant
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: body,
+      );
+      if (response.statusCode == 201) {
+        print("Notification envoyée avec succès");
       } else {
-        _returnToStart();
+        print("Erreur lors de l'envoi de la notification: ${response.body}");
       }
+    } catch (e) {
+      print("Erreur lors de l'envoi de la notification: $e");
     }
   }
+
+  void _validateDelivery() {
+  if (nextDepotIndex != null && widget.depots.isNotEmpty) {
+    // Sauvegarder les informations du dépôt livré avant de le supprimer
+    var deliveredDepot = nextDepotDetails;
+    
+    setState(() {
+      // Met à jour la position actuelle et supprime le dépôt livré
+      currentPosition = nextDepot!;
+      widget.depots.removeAt(nextDepotIndex!);
+      nextDepotDetails = null;
+    });
+
+    if (deliveredDepot != null) {
+      // Récupère les détails des paniers pour ce dépôt
+      List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
+      _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
+    }
+
+    if (widget.depots.isNotEmpty) {
+      _findClosestDepot(); // Trouver le prochain dépôt
+    } else {
+      _returnToStart(); // Retour au point de départ
+    }
+  }
+}
+
 
   void _returnToStart() {
     setState(() {

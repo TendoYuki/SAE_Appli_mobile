@@ -7,6 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 CSV_FILE = "data/Legumes_par_mois.csv"
+notifications = []
 
 class BasketInfos:
     def __init__(self, mois_souhaite):
@@ -32,19 +33,15 @@ class BasketInfos:
                 reader = csv.reader(file)
                 headers = next(reader)
                 mois_headers = headers[3:]  # Extraction des mois
-
                 if self.mois_souhaite not in mois_headers:
                     raise ValueError(f"Le mois spécifié ({self.mois_souhaite}) n'existe pas dans le fichier CSV.")
-
                 index_mois = mois_headers.index(self.mois_souhaite)
-
                 for row in reader:
                     try:
                         quantite = float(row[0].replace(',', '.'))
                         prix = float(row[1].replace(',', '.'))
                         legume = row[2]
                         disponibilites = row[3:]
-
                         if disponibilites[index_mois]:
                             self.data_pour_mois.append({
                                 'Legume': legume,
@@ -53,17 +50,13 @@ class BasketInfos:
                             })
                     except ValueError:
                         print(f"Erreur de conversion pour la ligne : {row}")
-
         except FileNotFoundError:
             raise FileNotFoundError(f"Fichier CSV introuvable : {self.csv_file}")
-
-        
 
     def calculate_infos(self):
         for legume_info in self.data_pour_mois:
             quantite_tot = legume_info['Quantite']
             prix_marge = round(legume_info['Prix'] * 1.2, 2)
-            
             self.prix_petit_panier_tot += round(quantite_tot * 0.2 * prix_marge, 2)
             self.prix_moyen_panier_tot += round(quantite_tot * 0.35 * prix_marge, 2)
             self.prix_grand_panier_tot += round(quantite_tot * 0.45 * prix_marge, 2)
@@ -78,7 +71,6 @@ class BasketInfos:
             legume = legume_info['Legume']
             quantite_tot = legume_info['Quantite']
             prix_marge = round(legume_info['Prix'] * 1.2, 2)
-            
             self.petit_panier.append({
                 'Legume': legume,
                 'Quantite': round(quantite_tot * 0.2 / max(1, self.nb_petit_panier_pour_mois), 2),
@@ -100,36 +92,21 @@ class BasketInfos:
         self.calculate_infos()
         self.set_basket_number()
         self.basket_distribution()
-        
 
 @app.route('/', methods=['GET'])
 def home():
-    return("Bienvenue sur l'api des paniers !")
+    return "Bienvenue sur l'api des paniers !"
 
-
-# basket?mois=Janvier&prixPetit=10&prixMoyen=20&prixGrand=40
 @app.route('/basket', methods=['GET'])
 def get_basket_via_get():
     try:
         mois = request.args.get('mois')
-        # prix_petit = request.args.get('prixPetit', type=float)
-        # prix_moyen = request.args.get('prixMoyen', type=float)
-        # prix_grand = request.args.get('prixGrand', type=float)
-
-        # if not mois or prix_petit is None or prix_moyen is None or prix_grand is None:
-        #     return json.dumps({"error": "Paramètres requis manquants. basket?mois=...&prixPetit=...&prixMoyen=...&prixGrand=..."}, ensure_ascii=False), 400
-
-        if not mois :
+        if not mois:
             return json.dumps({"error": "Paramètres requis manquants. basket?mois=..."}, ensure_ascii=False), 400
-
-
-        # basket = BasketInfos(prix_petit, prix_moyen, prix_grand, mois)
         basket = BasketInfos(mois)
         basket.init()
-
-        if not basket.data_pour_mois:  # Si aucun légume n'a été chargé
+        if not basket.data_pour_mois:
             return json.dumps({"error": f"Aucun légume disponible pour {mois}."}, ensure_ascii=False), 404
-
         response = {
             'moisSouhaite': mois,
             'prixPetitPanierTot': basket.prix_petit_panier_tot,
@@ -142,19 +119,30 @@ def get_basket_via_get():
             'moyenPanier': basket.moyen_panier,
             'grandPanier': basket.grand_panier
         }
-
         return app.response_class(
             response=json.dumps(response, ensure_ascii=False, indent=2, sort_keys=False),
             status=200,
             mimetype='application/json'
         )
-
     except FileNotFoundError as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False), 500
-
     except ValueError as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False), 400
 
+@app.route('/notify_delivery', methods=['POST'])
+def notify_delivery():
+    try:
+        data = request.get_json()
+        if not data or 'delivery' not in data or 'status' not in data:
+            return jsonify({"error": "Paramètres manquants"}), 400
+        notifications.append(data)
+        return jsonify({"message": "Notification enregistrée"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/notifications', methods=['GET'])
+def get_notifications():
+    return jsonify(notifications), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0',port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
