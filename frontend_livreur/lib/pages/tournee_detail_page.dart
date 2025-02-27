@@ -41,20 +41,30 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
     _fetchPaniers(months[mois - 1]);
   }
 
-  /// Charge la liste des dépôts depuis la tournée sélectionnée
   void _loadDepots() {
-    if (widget.tournee['depots'] is List) {
-      try {
-        setState(() {
-          depots = List<Map<String, dynamic>>.from(widget.tournee['depots']);
-        });
-      } catch (e) {
-        print("❌ Erreur de conversion des dépôts : $e");
-      }
-    } else {
-      print("⚠️ Les données des dépôts ne sont pas une liste !");
+  print("🔍 Dépôts reçus : ${widget.tournee['depots']}"); // Debug
+  
+  if (widget.tournee['depots'] is List) {
+    try {
+      depots = widget.tournee['depots'].map((depot) {
+        if (depot == null) {
+          return {'depot': 'Dépôt inconnu'};  // ✅ Gère les valeurs `null`
+        }
+        if (depot is String) {
+          return {'depot': depot};  // ✅ Convertit les Strings en Maps
+        }
+        return depot;
+      }).toList().cast<Map<String, dynamic>>();
+
+      setState(() {});
+    } catch (e) {
+      print("❌ Erreur de conversion des dépôts : $e");
     }
+  } else {
+    print("⚠️ Les données des dépôts ne sont pas une liste !");
   }
+}
+
 
 //   Future<void> _createDefaultPanierComposition(int tourneeId) async {
 //   final String apiUrl =

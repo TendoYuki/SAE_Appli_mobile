@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'tournee_detail_page.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class TourneePage extends StatefulWidget {
   @override
@@ -17,7 +16,7 @@ class _TourneePageState extends State<TourneePage> {
   List<Map<String, dynamic>> tournees = [];
   List depots = [];
   List<bool> selectedDepots = [];
-  final Color primaryColor = Color(0xFF2196F3);
+  final Color primaryColor = Color(0xFF2196F3); 
   final Color accentColor = Color(0xFFFF9800);
 
   final String jardinDeCocagne = "Jardins de Cocagne";
@@ -65,53 +64,62 @@ class _TourneePageState extends State<TourneePage> {
   }
 
   Future<int> _generateUniqueId() async {
-    final prefs = await SharedPreferences.getInstance();
-    int id = (prefs.getInt('lastTourneeId') ?? 0) + 1;
+  final prefs = await SharedPreferences.getInstance();
+  int id = (prefs.getInt('lastTourneeId') ?? 0) + 1;
 
-    if (id > 1000) {
-      id = 1; // On boucle pour rester sous 1000
-    }
-
-    await prefs.setInt('lastTourneeId', id);
-    return id;
+  if (id > 1000) {
+    id = 1; // On boucle pour rester sous 1000
   }
 
-  void _saveTournee() {
-    if (_nomController.text.isEmpty) {
-      setState(() => _nomError = true);
-      return;
-    }
+  await prefs.setInt('lastTourneeId', id);
+  return id;
+}
 
-    List<String> depotsSelectionnes = [];
-    for (int i = 0; i < selectedDepots.length; i++) {
-      if (selectedDepots[i]) {
-        depotsSelectionnes.add(depots[i]['depot']);
-      }
-    }
-
-    if (depotsSelectionnes.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Veuillez sélectionner au moins un dépôt")),
-      );
-      return;
-    }
-
+  Future<void> _saveTournee() async {
+  if (_nomController.text.isEmpty) {
     setState(() {
-      tournees.add({
-        'nom': _nomController.text,
-        'total_depots': depotsSelectionnes.length,
-        'depots': depotsSelectionnes, // Ajoute la liste des dépôts sélectionnés
-      });
-
-      // Réinitialisation des champs après l'ajout
-      _nomController.clear();
-      isCreatingTournee = false;
-      _nomError = false;
-      selectedDepots = List<bool>.filled(depots.length, false);
+      _nomError = true;
     });
-
-    print("Nouvelle tournée créée: ${tournees.last}"); // Debugging
+    return;
   }
+
+  setState(() {
+    _nomError = false;
+  });
+
+  if (!selectedDepots.contains(true)) return;
+
+  List<Map<String, dynamic>> depotsSelectionnes = [];
+  for (int i = 0; i < depots.length; i++) {
+    if (selectedDepots[i]) {
+      depotsSelectionnes.add({
+        "nom": depots[i]['depot'],
+        "adresse": depots[i]['adresse'] ?? "Adresse inconnue",
+        "coordonnees": depots[i]['localisation'] ?? {"lat": 0, "lng": 0}
+      });
+    }
+  }
+
+  int id = await _generateUniqueId(); // Génère un ID ≤ 1000
+
+  Map<String, dynamic> nouvelleTournee = {
+    "id": id, // 📌 Utilisation de l'ID généré
+    "nom": _nomController.text,
+    "depots": depotsSelectionnes,
+    "total_depots": depotsSelectionnes.length
+  };
+
+  setState(() {
+    tournees.add(nouvelleTournee);
+    isCreatingTournee = false;
+  });
+
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setString('tournees', json.encode(tournees));
+
+  _nomController.clear();
+  selectedDepots = List<bool>.filled(depots.length, false);
+}
 
   Future<void> _deleteTournee(int index) async {
     setState(() {
@@ -127,15 +135,14 @@ class _TourneePageState extends State<TourneePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: Text(
             "Supprimer la tournée ?",
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Text(
-            "Cette action est irréversible.",
-            style: GoogleFonts.poppins(fontSize: 16),
+            "Êtes-vous sûr de vouloir supprimer cette tournée ? Cette action est irréversible.",
+            style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
@@ -151,8 +158,9 @@ class _TourneePageState extends State<TourneePage> {
         );
       },
     );
+
     if (confirm == true) {
-      setState(() => tournees.removeAt(index));
+      _deleteTournee(index);
     }
   }
 
@@ -161,15 +169,14 @@ class _TourneePageState extends State<TourneePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: Text(
             "Supprimer le point de départ ?",
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Text(
-            "Vous êtes sur le point de retirer 'Jardins de Cocagne', le point de départ de la tournée. Voulez-vous continuer ?",
-            style: GoogleFonts.poppins(fontSize: 16),
+            "Vous êtes sur le point de retirer 'Jardins de Cocagne', qui est le point de départ de la tournée. Voulez-vous continuer ?",
+            style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
@@ -185,8 +192,11 @@ class _TourneePageState extends State<TourneePage> {
         );
       },
     );
+
     if (confirm == true) {
-      setState(() => selectedDepots[index] = false);
+      setState(() {
+        selectedDepots[index] = false;
+      });
     }
   }
 
@@ -194,107 +204,100 @@ class _TourneePageState extends State<TourneePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Gestion des Tournées', style: GoogleFonts.poppins()),
+        title: Text('Gestion des Tournées'),
         centerTitle: true,
-        backgroundColor: Colors.green.shade600,
-        elevation: 0,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.green.shade600,
-        onPressed: () {
-          setState(() => isCreatingTournee = !isCreatingTournee);
-        },
-        icon: Icon(isCreatingTournee ? Icons.cancel : Icons.add,
-            color: Colors.white),
-        label: Text(isCreatingTournee ? 'Annuler' : 'Nouvelle tournée',
-            style: GoogleFonts.poppins(color: Colors.white)),
+        backgroundColor: Color(0xFF388E3C), // Vert clair
       ),
       body: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(10.0),
         child: Column(
           children: [
+            ElevatedButton.icon(
+              icon: Icon(isCreatingTournee ? Icons.cancel : Icons.add),
+              onPressed: () {
+                setState(() {
+                  isCreatingTournee = !isCreatingTournee;
+                  _nomError = false;
+                });
+              },
+              label: Text(isCreatingTournee ? 'Annuler' : 'Créer une Tournée'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isCreatingTournee ? Colors.red : Color(0xFF388E3C), // Vert clair
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+            ),
             if (isCreatingTournee) ...[
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Nom de la tournée",
-                          style: GoogleFonts.poppins(fontSize: 16)),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: _nomController,
-                        decoration: InputDecoration(
-                          errorText: _nomError ? "Champ requis" : null,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 200, // Hauteur fixe pour éviter l'overflow
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: depots.length,
-                          itemBuilder: (context, index) {
-                            bool isJardin =
-                                depots[index]['depot'] == "Jardins de Cocagne";
-                            return CheckboxListTile(
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _nomController,
+                  decoration: InputDecoration(
+                    labelText: 'Nom de la tournée',
+                    errorText: _nomError ? "Le nom de la tournée est requis" : null,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: depots.isEmpty
+                    ? Center(child: CircularProgressIndicator(color: Color(0xFF388E3C))) // Vert clair
+                    : ListView.builder(
+                        itemCount: depots.length,
+                        itemBuilder: (context, index) {
+                          bool isJardin = depots[index]['depot'] == "Jardins de Cocagne";
+                          return Card(
+                            margin: EdgeInsets.symmetric(vertical: 5),
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            child: CheckboxListTile(
                               title: Text(depots[index]['depot']),
                               value: selectedDepots[index],
                               onChanged: (bool? value) {
                                 if (isJardin && value == false) {
                                   _confirmRemoveJardin(index);
                                 } else {
-                                  setState(
-                                      () => selectedDepots[index] = value!);
+                                  setState(() {
+                                    selectedDepots[index] = value!;
+                                  });
                                 }
                               },
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                      SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.save),
-                        onPressed: _saveTournee,
-                        label:
-                            Text("Sauvegarder", style: GoogleFonts.poppins()),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _saveTournee,
+                child: Text('Sauvegarder Tournée'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF388E3C), // Vert clair
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
+              Divider(),
             ],
             Expanded(
               child: ListView.builder(
                 itemCount: tournees.length,
                 itemBuilder: (context, index) {
                   return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    margin: EdgeInsets.symmetric(vertical: 5),
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     child: ListTile(
-                      contentPadding: EdgeInsets.all(12),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       title: Text(
                         tournees[index]['nom'],
-                        style: GoogleFonts.poppins(
-                            fontSize: 18, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         "Dépôts: ${tournees[index]['total_depots']}",
-                        style: GoogleFonts.poppins(
-                            fontSize: 14, color: Colors.grey),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -304,14 +307,13 @@ class _TourneePageState extends State<TourneePage> {
                             onPressed: () => _confirmDeleteTournee(index),
                           ),
                           IconButton(
-                            icon: Icon(Icons.arrow_forward,
-                                color: Colors.green.shade600),
+                            icon: Icon(Icons.arrow_forward, color: Color(0xFF388E3C)), // Vert clair
                             onPressed: () {
+                              print("🔍 ID de la tournée envoyée : ${tournees[index]['id']}");
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => TourneeDetailPage(
-                                      tournee: tournees[index]),
+                                  builder: (context) => TourneeDetailPage(tournee: tournees[index]),
                                 ),
                               );
                             },
