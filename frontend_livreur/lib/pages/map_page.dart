@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_livraison/services/qr_code_service.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
@@ -99,8 +100,8 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _notifyDelivery(
-      String deliveryTitle, String status, List<dynamic> paniers) async {
-    final url = Uri.parse("http://127.0.0.1:5000/notify_delivery");
+    String deliveryTitle, String status, List<dynamic> paniers) async {
+    final url = Uri.parse("http://192.168.1.24:5000/notify_delivery");
     final body = jsonEncode({
       "delivery": deliveryTitle,
       "status": status,
@@ -125,30 +126,38 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _validateDelivery() {
-  if (nextDepotIndex != null && widget.depots.isNotEmpty) {
-    // Sauvegarder les informations du dépôt livré avant de le supprimer
-    var deliveredDepot = nextDepotDetails;
-    
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => QRScannerPage(onScanSuccess: _onScanSuccess)),
+    );
+  }
+
+  void _onScanSuccess(String qrCode) {
+    var deliveredDepot = null;
     setState(() {
-      // Met à jour la position actuelle et supprime le dépôt livré
-      currentPosition = nextDepot!;
-      widget.depots.removeAt(nextDepotIndex!);
-      nextDepotDetails = null;
+      if (nextDepotIndex != null && widget.depots.isNotEmpty) {
+        currentPosition = nextDepot!;
+        widget.depots.removeAt(nextDepotIndex!);
+        deliveredDepot = nextDepotDetails;
+        nextDepotDetails = null;
+      }
+
+      if (deliveredDepot != null) {
+        List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
+        _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
+      }
+
+      if (widget.depots.isNotEmpty) {
+        _findClosestDepot();
+      } else {
+        _returnToStart();
+      }
     });
 
-    if (deliveredDepot != null) {
-      // Récupère les détails des paniers pour ce dépôt
-      List<dynamic> paniersDetails = deliveredDepot['paniers'] ?? [];
-      _notifyDelivery("Livraison au dépôt ${deliveredDepot['nom']}", "Livré", paniersDetails);
-    }
-
-    if (widget.depots.isNotEmpty) {
-      _findClosestDepot(); // Trouver le prochain dépôt
-    } else {
-      _returnToStart(); // Retour au point de départ
-    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text("✅ Livraison validée avec succès !"),
+    ));
   }
-}
 
 
   void _returnToStart() {
@@ -179,7 +188,7 @@ class _MapPageState extends State<MapPage> {
       builder: (context) {
         return Container(
           padding: EdgeInsets.all(16.0),
-          height: 250,
+          height: 500,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

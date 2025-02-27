@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchDeliveries() async {
     // Pour un émulateur Android, utilisez http://10.0.2.2:5000/notifications
-    final url = Uri.parse("http://127.0.0.1:5000/notifications");
+    final url = Uri.parse("http://192.168.1.24:5000/notifications");
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
