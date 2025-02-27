@@ -157,7 +157,7 @@ class _TourneeDetailPageState extends State<TourneeDetailPage> {
 
   Future<void> _fetchPaniers(String mois) async {
     final String apiUrl =
-        "http://127.0.0.1:5000/basket?mois=$mois"; // URL correcte
+        "http://192.168.1.24:5000/basket?mois=$mois"; // URL correcte
     print("Mois choisi : $mois");
     try {
       final response = await http.get(Uri.parse(apiUrl));
